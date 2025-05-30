@@ -8,9 +8,10 @@ pipeline{
                 echo 'Checking pre-requisites'
                 sleep 2
                 sh'''
-                    sudo apt-get update
-                    sudo apt-get install -y wget curl python3 python3-pip python3-pep8 python3-flask pipenv pylint pipx
-		    pipx install pyinstaller
+                    python3 app.py &
+		    chmod +x /home/jenkins/.local/bin/pyinstaller
+		    /home/jenkins/.local/bin/pyinstaller  app.py
+
                 '''
             }
         }
