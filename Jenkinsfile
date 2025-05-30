@@ -30,6 +30,7 @@ pipeline{
                 sleep 2
                 sh '''
 		    pipx ensurepath;
+                    export PATH=$HOME/.local/bin:$PATH
                     python3 app.py &
 		    chmod +x /home/jenkins/.local/pipx/venvs/pyinstaller
 		    /home/jenkins/.local/pipx/venvs/pyinstaller  app.py
