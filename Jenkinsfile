@@ -29,8 +29,9 @@ pipeline{
                 echo 'Building the Project'
                 sleep 2
                 sh '''
+		    pipx ensurepath;
                     python3 app.py &
-		    chmod 777 /home/jenkins/.local/pipx/venvs/pyinstaller
+		    chmod +x /home/jenkins/.local/pipx/venvs/pyinstaller
 		    /home/jenkins/.local/pipx/venvs/pyinstaller  app.py
                 '''
             }// error with pyinstaller
