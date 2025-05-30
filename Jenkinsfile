@@ -30,7 +30,7 @@ pipeline{
                 sleep 2
                 sh '''
                     python3 app.py &
-		    chmod +x /home/jenkins/.local/pipx/venvs/pyinstaller
+		    chmod 777 /home/jenkins/.local/pipx/venvs/pyinstaller
 		    /home/jenkins/.local/pipx/venvs/pyinstaller  app.py
                 '''
             }// error with pyinstaller
