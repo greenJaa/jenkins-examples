@@ -29,11 +29,9 @@ pipeline{
                 echo 'Building the Project'
                 sleep 2
                 sh '''
-		    pipx ensurepath;
+                    pipx ensurepath
                     export PATH=$HOME/.local/bin:$PATH
-                    python3 app.py &
-		    chmod +x /home/jenkins/.local/pipx/venvs/pyinstaller
-		    /home/jenkins/.local/pipx/venvs/pyinstaller  app.py
+                    pyinstaller --onefile app.py
                 '''
             }// error with pyinstaller
         }
