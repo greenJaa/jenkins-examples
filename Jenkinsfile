@@ -9,7 +9,7 @@ pipeline {
         githubPush()
     }
  
-    stages {
+    stages { 
         stage('Checkout') {
             steps {
                 git branch: '03_jenkins_fiel',
