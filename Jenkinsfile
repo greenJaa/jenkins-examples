@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent any 
 
     triggers {
         githubPush()   // 🚀 Trigger build on every GitHub push
