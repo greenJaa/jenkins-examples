@@ -4,7 +4,7 @@ pipeline {
     environment {
         VENV_DIR = "${WORKSPACE}/venv"
     }
-
+ 
     triggers {
         githubPush()
     }
