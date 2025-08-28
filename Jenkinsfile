@@ -1,8 +1,8 @@
 pipeline {
     agent {
         docker {
-            image 'python:3.10-slim'   // Python image with pip
-            args '-u root'             // Run as root so we can install packages
+            image 'python:3.10-slim'   // Python base image
+            args '-u root'             // Run as root for apt-get
         }
     }
 
@@ -11,7 +11,7 @@ pipeline {
             steps {
                 echo 'Checking pre-requisites'
                 sh '''
-                    apt-get update && apt-get install -y curl
+                    apt-get update && apt-get install -y curl binutils
                     pip install --no-cache-dir pyinstaller pylint
                     python --version
                     pip --version
@@ -44,7 +44,6 @@ pipeline {
                     # Run the built app in the background
                     ./dist/app &
 
-                    # Give it a second to start
                     sleep 2
 
                     if curl -s http://localhost:8080 > /dev/null; then
