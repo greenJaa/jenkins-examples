@@ -1,18 +1,32 @@
 pipeline {
-    agent any 
+    agent any
+
+    environment {
+        VENV_DIR = "${WORKSPACE}/venv"
+    }
 
     triggers {
-        githubPush()   // 🚀 Trigger build on every GitHub push
+        githubPush()
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git branch: '03_jenkins_fiel',
+                    url: 'https://github.com/greenJaa/jenkins-examples.git'
+            }
+        }
+
         stage('Pre-Build') {
             steps {
-                echo 'Checking pre-requisites'
-                sleep(time: 2, unit: 'SECONDS')
+                echo 'Installing dependencies & setting up virtualenv'
                 sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
+                    apt-get update -y
+                    apt-get install -y python3 python3-pip python3-venv binutils curl
+                    if [ ! -d "$VENV_DIR" ]; then
+                        python3 -m venv "$VENV_DIR"
+                    fi
+                    . "$VENV_DIR/bin/activate"
                     pip install --upgrade pip --break-system-packages
                     pip install flask pylint pyinstaller --break-system-packages
                 '''
@@ -23,17 +37,17 @@ pipeline {
             steps {
                 echo 'Running pylint'
                 sh '''
-                    . venv/bin/activate
-                    pylint app.py || true
+                    . "$VENV_DIR/bin/activate"
+                    pylint --disable=missing-docstring,invalid-name app.py
                 '''
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building with PyInstaller'
+                echo 'Building application with PyInstaller'
                 sh '''
-                    . venv/bin/activate
+                    . "$VENV_DIR/bin/activate"
                     pyinstaller --onefile app.py
                 '''
             }
@@ -41,18 +55,32 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Running basic test'
+                echo 'Testing built binary'
                 sh '''
-                    . venv/bin/activate
-                    python3 -c "import app; print(app.index())"
+                    . "$VENV_DIR/bin/activate"
+                    APP_PID=0
+                    ./dist/app &
+                    APP_PID=$!
+                    sleep 3
+                    curl -s http://127.0.0.1:8000 | grep -q "Hello World"
+                    echo "Test passed!"
+                    kill $APP_PID
                 '''
             }
         }
 
         stage('Archive') {
             steps {
+                echo 'Archiving artifacts'
                 archiveArtifacts artifacts: 'dist/*', fingerprint: true
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace'
+            cleanWs()
         }
     }
 }
