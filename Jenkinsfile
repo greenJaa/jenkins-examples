@@ -1,36 +1,35 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10-slim'   // Python base image
-            args '-u root'             // Run as root for apt-get
-        }
+    agent any
+
+    environment {
+        PATH = "$HOME/.local/bin:$PATH"
     }
 
     stages {
         stage('Pre-Build') {
             steps {
-                echo 'Checking pre-requisites'
+                echo 'Installing dependencies & checking pre-requisites'
                 sh '''
-                    apt-get update && apt-get install -y curl binutils
-                    pip install --no-cache-dir pyinstaller pylint
-                    python --version
-                    pip --version
+                    apt-get update -y
+                    apt-get install -y python3 python3-pip python3-venv binutils curl
+                    pip3 install --upgrade pip
+                    pip3 install flask pylint pyinstaller
                 '''
             }
         }
 
         stage('Linter') {
             steps {
-                echo 'Static code analysis check'
+                echo 'Running pylint'
                 sh '''
-                    pylint --disable=missing-docstring,invalid-name app.py
+                    pylint --disable=missing-docstring,invalid-name app.py 
                 '''
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building the Project'
+                echo 'Building binary with PyInstaller'
                 sh '''
                     pyinstaller --onefile app.py
                 '''
@@ -39,33 +38,27 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Testing'
+                echo 'Starting Flask app and testing endpoints'
                 sh '''
-                    # Run the built app in the background
-                    ./dist/app &
+                    # Start Flask app in background
+                    python3 app.py &
+                    APP_PID=$!
+                    sleep 5
 
-                    sleep 2
+                    # Test root endpoint
+                    curl -f http://127.0.0.1:8000/ || (echo "Root endpoint failed" && kill $APP_PID && exit 1)
 
-                    if curl -s http://localhost:8080 > /dev/null; then
-                        echo 'POST test: success'
-                    else
-                        echo 'POST test: fail'
-                        exit 1
-                    fi
+                    # Test /jenkins endpoint
+                    curl -f http://127.0.0.1:8000/jenkins || (echo "/jenkins endpoint failed" && kill $APP_PID && exit 1)
 
-                    if curl -s http://localhost:8080/jenkins > /dev/null; then
-                        echo 'POST test with variable: success'
-                    else
-                        echo 'POST test with variable: fail'
-                        exit 1
-                    fi
+                    kill $APP_PID
                 '''
             }
         }
 
         stage('Archive') {
             steps {
-                echo 'Archiving the artifact'
+                echo 'Archiving the binary artifact'
                 archiveArtifacts artifacts: 'dist/*', onlyIfSuccessful: true
             }
         }
