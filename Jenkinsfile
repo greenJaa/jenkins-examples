@@ -2,18 +2,32 @@ pipeline {
     agent any
 
     environment {
-        PATH = "$HOME/.local/bin:$PATH"
+        VENV = "${WORKSPACE}/venv"
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/greenJaa/jenkins-examples.git', branch: '03_jenkins_fiel'
+            }
+        }
+
         stage('Pre-Build') {
             steps {
-                echo 'Installing dependencies & checking pre-requisites'
+                echo 'Installing dependencies & setting up virtualenv'
                 sh '''
                     apt-get update -y
                     apt-get install -y python3 python3-pip python3-venv binutils curl
-                    pip3 install --upgrade pip
-                    pip3 install flask pylint pyinstaller
+
+                    # Create venv if not exists
+                    if [ ! -d "$VENV" ]; then
+                        python3 -m venv $VENV
+                    fi
+
+                    # Activate and install requirements
+                    . $VENV/bin/activate
+                    pip install --upgrade pip
+                    pip install flask pylint pyinstaller
                 '''
             }
         }
@@ -22,15 +36,17 @@ pipeline {
             steps {
                 echo 'Running pylint'
                 sh '''
-                    pylint --disable=missing-docstring,invalid-name app.py 
+                    . $VENV/bin/activate
+                    pylint --disable=missing-docstring,invalid-name app.py
                 '''
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building binary with PyInstaller'
+                echo 'Building application with PyInstaller'
                 sh '''
+                    . $VENV/bin/activate
                     pyinstaller --onefile app.py
                 '''
             }
@@ -38,18 +54,20 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Starting Flask app and testing endpoints'
+                echo 'Testing built binary'
                 sh '''
-                    # Start Flask app in background
-                    python3 app.py &
+                    . $VENV/bin/activate
+                    ./dist/app &
                     APP_PID=$!
-                    sleep 5
+                    sleep 3
 
-                    # Test root endpoint
-                    curl -f http://127.0.0.1:8000/ || (echo "Root endpoint failed" && kill $APP_PID && exit 1)
-
-                    # Test /jenkins endpoint
-                    curl -f http://127.0.0.1:8000/jenkins || (echo "/jenkins endpoint failed" && kill $APP_PID && exit 1)
+                    if curl -s http://127.0.0.1:8000 | grep -q 'Hello World'; then
+                        echo "Test passed!"
+                    else
+                        echo "Test failed!"
+                        kill $APP_PID
+                        exit 1
+                    fi
 
                     kill $APP_PID
                 '''
@@ -58,9 +76,21 @@ pipeline {
 
         stage('Archive') {
             steps {
-                echo 'Archiving the binary artifact'
-                archiveArtifacts artifacts: 'dist/*', onlyIfSuccessful: true
+                echo 'Archiving artifacts'
+                archiveArtifacts artifacts: 'dist/*', fingerprint: true
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace'
+        }
+        success {
+            echo 'Pipeline finished successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
