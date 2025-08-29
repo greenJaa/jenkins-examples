@@ -53,21 +53,32 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                echo 'Testing built binary'
-                sh '''
-                    . "$VENV_DIR/bin/activate"
-                    APP_PID=0
-                    ./dist/app &
-                    APP_PID=$!
-                    sleep 3
-                    curl -s http://127.0.0.1:8000 | grep -q "Hello World"
-                    echo "Test passed!"
-                    kill $APP_PID
-                '''
-            }
-        }
+stage('Test') {
+    steps {
+        echo 'Testing built binary'
+        sh '''
+            . "$VENV_DIR/bin/activate"
+            APP_PID=0
+            ./dist/app &
+            APP_PID=$!
+            sleep 5
+
+            RESPONSE=$(curl -s http://127.0.0.1:8000 || true)
+            echo "Response: $RESPONSE"
+
+            if [[ "$RESPONSE" == *"Hello World"* ]]; then
+                echo "Test passed!"
+                EXIT_CODE=0
+            else
+                echo "Test failed!"
+                EXIT_CODE=1
+            fi
+
+            kill $APP_PID || true
+            exit $EXIT_CODE
+        '''
+    }
+}
 
         stage('Archive') {
             steps {
