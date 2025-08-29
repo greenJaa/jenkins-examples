@@ -67,9 +67,9 @@ stage('Test') {
             RESPONSE=$(curl -s http://127.0.0.1:8000 || true)
             echo "Response: $RESPONSE"
 
-            if [[ "$RESPONSE" == *"Hello World"* ]]; then
-                echo "Test passed!"
-                EXIT_CODE=0
+if [ "${RESPONSE#*Hello World}" != "$RESPONSE" ]; then
+    echo "Test passed!"
+    EXIT_CODE=0
             else
                 echo "Test failed!"
                 EXIT_CODE=1
