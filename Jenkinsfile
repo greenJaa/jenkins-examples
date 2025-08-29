@@ -57,6 +57,7 @@ stage('Test') {
     steps {
         echo 'Testing built binary'
         sh '''
+            #!/bin/bash
             . "$VENV_DIR/bin/activate"
             APP_PID=0
             ./dist/app &
