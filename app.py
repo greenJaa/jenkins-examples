@@ -8,7 +8,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
 
-    return jsonify(success=True,message='From GUI')
+    return jsonify(success=True,message='Hello World')
 
 @app.route('/<name>')
 def hello(name):
