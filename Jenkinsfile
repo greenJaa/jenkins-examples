@@ -1,5 +1,5 @@
 pipeline {
-    agent any 
+    agent any
 
     environment {
         VENV_DIR = "${WORKSPACE}/venv"
